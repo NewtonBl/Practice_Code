@@ -1,0 +1,239 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+A visualization of political party association change over time utilizing gss_cats data. To simplifiy the data, the partyid factors were collapsed.
+
+```{r}
+party_prop_year <- gss_cat |> 
+  mutate(partyid = fct_collapse(partyid, 
+                              Independent = c("Ind,near rep", "Independent", "Ind,near dem"),
+                              Republican = c("Strong republican", "Not str republican"),
+                              Democrat = c("Strong democrat", "Not str democrat"),
+                              Other = c("No answer", "Don't know", "Other party"))) |> 
+  group_by(year) |> 
+  count(partyid) |> 
+  mutate(prop = n / sum(n))
+
+ggplot(party_prop_year, aes(year, prop, color= partyid)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Party Affilliation over Time", caption = "Proportion of gss_cat responses that identify with each political party plotted by year.", color = "Party Affilliation") +
+  xlab("Year") +
+  ylab("Proportion of Sample")
+```
+
+Converting dates utilizing lubridate
+
+```{r}
+birthday_tibble <- tibble(
+  name = c("A", "M", "N", "B"),
+  birthday = c("Mar 10 2013", "May 11 1993", "10/12/2015", "Dec 9 1992"),
+  month = c(3,5,10,12),
+  day = c(10, 11, 12, 9),
+  year = c(2013, 1993, 2015, 1992)
+)
+
+birthday_dates <- birthday_tibble |> mutate(
+  birthday = mdy(birthday),
+  bday_from_cols = make_date(year = birthday_tibble$year, month = birthday_tibble$month, day = birthday_tibble$day),
+  day_of_week = wday(birthday, label = TRUE, abbr = FALSE)
+)
+```
+
+Using make_date and make_datetime to create date from year month date and time values in separate columns. Plotting date data.
+
+```{r}
+#Create a function to apply to each of the four times in the flights table 
+#(scheduled departure and arrival times, and actual departure and arrival times)
+
+make_datetime_func <- function(year, month, day, time){
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+#Filter for NA, then apply function to make a single dttm column from year, month, day and time columns
+
+flights_dt <- flights |> 
+  filter(!is.na(dep_time) & !is.na(arr_time)) |> 
+  mutate(
+    dep_time = make_datetime_func(year, month, day, dep_time),
+    arr_time = make_datetime_func(year, month, day, arr_time),
+    sched_dep_time = make_datetime_func(year, month, day, sched_dep_time),
+    sched_arr_time = make_datetime_func(year, month, day, sched_arr_time)
+  ) |> 
+  select(origin, dest, ends_with("time"), ends_with("delay"))
+
+#Filter flights based on date, plot histogram by desired binwidth
+#Note: dttm must be converted to date to single out a specific date
+
+ggplot(filter(flights_dt, as_date(dep_time) == ymd(20130310)), aes(dep_time)) +
+  geom_histogram(binwidth = 900)
+
+#You can even filter using between() to narrow dates to a range
+
+ggplot(filter(flights_dt, between(as_date(dep_time), ymd(20130310), ymd(20130317))), aes(as_date(dep_time))) +
+  geom_histogram(binwidth = 1)
+
+#Getting day of week from dttm columns
+flights_dt |> mutate(
+  weekday = wday(as_date(sched_dep_time), label = TRUE) #convert departure dttm to weekday
+) |> 
+  count(weekday) |> #count number of occurrences
+  ggplot(aes(weekday, n)) +
+  geom_col() +
+  ylab("Number of flights in 2013") +
+  xlab("Day of the week") +
+  labs(title = "Count of flights in 2013 by day of week")
+
+#Intuitive way to correct overnight flights with an arrival time prior to departure time by adding a day (period) only to flights where arr_time < dep_time.
+flights_dt <- flights_dt |> 
+  mutate(
+    overnight = arr_time < dep_time,
+    arr_time = arr_time + days(overnight * 1),
+    sched_arr_time = sched_arr_time + days(overnight * 1)
+  )
+
+flights_dt |> filter(arr_time < dep_time)
+
+```
+
+Function Practice
+
+```{r}
+
+# FizzBuzz Function -------------------------------------------------------
+
+
+fizzbuzz <- function(num){
+  if(!(num %% 3) & !(num %% 5)){
+    "fizzbuzz"
+  } else if(!(num %% 3)){
+    "fizz"
+  } else if(!(num %% 5)){
+    "buzz"
+  } else {
+    as.character(num)
+  }
+}
+
+
+# Switch with Numeric -----------------------------------------------------
+
+switcharoo <- function(x, y, op){
+  switch (op,
+    plus = x + y,
+    minus = x - y,
+    multiply = x * y,
+    divide = x / y
+  )
+} 
+
+# Rule Function from Book -------------------------------------------------
+
+#Improved function where padding accounts for multiple character pad argument
+rule <- function(..., pad = "-"){
+  title <- paste0(...)
+  width = getOption("width") - nchar(title) - 5
+  cat(title, " ", str_dup(pad, (width %/% nchar(pad))), "\n", sep = "")
+}
+
+rule("This is a sample of rule()")
+
+rule("This is another sample of rule with pad argument", pad = "+-")
+
+
+# Iterations --------------------------------------------------------------
+
+df <- tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+
+output <- vector("double", ncol(df))
+for(i in seq_along(df)){
+  output[[i]] <- median(df[[i]])
+}
+
+output2 <- vector("double", ncol(mtcars))
+for(i in seq_along(mtcars)){
+  output2[[i]] <- mean(mtcars[[i]])
+}
+
+output3 <- vector("character", ncol(nycflights13::flights))
+names(output3) <- names(nycflights13::flights)
+for(i in seq_along(nycflights13::flights)){
+  output3[[i]] <- typeof(nycflights13::flights[[i]])
+}
+
+input4 <- c(-10, 0, 10, 100)
+output4 <- vector("list", length(input4))
+for (i in seq_along(input4)) {
+  output4[[i]] <- rnorm(10, input4[i])
+}
+
+col_summary <- function(df, fun) {
+  output5 <- vector("numeric", length(df))
+  for (i in seq_along(df)) {
+    output5[[i]] <- fun(df[[i]])
+  }
+  output5
+}
+
+col_summary2 <- function(df, fun) {
+  
+  # Create vector of logicals that test if column is numeric
+  num <- vector("logical", length(df))
+  for (i in seq_along(df)) {
+    num[[i]] <- is.numeric(df[[i]])
+  }
+  
+  # Create a vector of indices for numeric columns
+  index <- which(num)
+  
+  # Calculate number of numeric columns
+  n <- sum(num)
+  
+  # Create output vector equal in length to number of numeric columns in df
+  # Fun(df[[index[[i]]]]) is column number in df, equal to value in index[[i]] location
+  output6 <- vector("numeric", n)
+  for (i in seq_along(index)) {
+    output6[[i]] <- fun(df[[index[[i]]]])
+  }
+  names(output6) <- names(df)[index]
+  output6
+}
+
+
+```
+
+DiagrammeR Practice
+
+```{r}
+
+grViz("digraph {
+      
+      graph[rankdir = TD]
+      
+      node [shape = rectangle, style = filled, fillcolor = LightCyan]
+      A1[label = 'Johns Hopkins Job']
+      A2[label = 'Local Job']
+      B1[label = 'Bioinformatics Masters\nJohns Hopkins']
+      B2[label = 'Bioinformatics at GVSU']
+      B3[label = 'Military Service']
+      B4[label = 'Data Science at GVSU']
+      C1[label = 'Bioinformatics Role']
+      C2[label = 'Job in Field']
+      
+      edge []
+      A1 -> B1 -> C1
+      A2 -> {B2 B3 B4}
+      {B2 B4} -> C2
+      B3 -> {B2 B4}
+}")
+
+```
+
+
