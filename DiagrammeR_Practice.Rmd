@@ -1,5 +1,5 @@
 ---
-title: "Potential Career Flow Chart"
+title: "Flow Chart"
 author: "Blake Newton"
 date: ""
 output: html_document
@@ -8,12 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-library(readxl)
-library(stringr)
-library(forcats)
-library(lubridate)
 library(htmlwidgets)
-library(nycflights13)
 library(DiagrammeR)
 ```
 
@@ -25,14 +20,14 @@ grViz("digraph {
       graph[rankdir = TD]
       
       node [shape = rectangle, style = filled, fillcolor = LightCyan]
-      A1[label = 'Johns Hopkins Job']
-      A2[label = 'Local Job']
-      B1[label = 'Bioinformatics Masters\nJohns Hopkins']
-      B2[label = 'Bioinformatics at GVSU']
-      B3[label = 'Military Service']
-      B4[label = 'Data Science at GVSU']
-      C1[label = 'Bioinformatics Role']
-      C2[label = 'Job in Field']
+      A1[label = 'A1']
+      A2[label = 'A2']
+      B1[label = 'B1']
+      B2[label = 'B2']
+      B3[label = 'B3']
+      B4[label = 'B4']
+      C1[label = 'C1']
+      C2[label = 'C2']
       
       edge []
       A1 -> B1 -> C1
